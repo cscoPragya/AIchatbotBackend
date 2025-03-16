@@ -7,16 +7,27 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class User {
     @Id
     private String id;
-    private String name;
+    private String username;
     private String email;
     private String password;
+    private String role;
 
-    public String getName() {
-        return name;
+
+    public String getRoles() {
+        return role;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setRoles(String role) {
+        this.role = role;
+    }
+
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String name) {
+        this.username = name;
     }
 
     public String getEmail() {

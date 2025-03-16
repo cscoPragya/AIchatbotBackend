@@ -14,4 +14,5 @@ public interface userRepoForLoginSignup extends MongoRepository<User, String> {
     // findByEmail() may be (by some naming convention, don't worry would learn!)
 
 public Optional<User> findByEmail(String email);
+public Optional<User> findByUsername(String username);
 }
