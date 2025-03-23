@@ -1,13 +1,20 @@
 package net.AIChatbotBackend.controllers;
 
+import jakarta.validation.Valid;
 import net.AIChatbotBackend.models.User;
+import net.AIChatbotBackend.service.CustomUserDetailsService;
 import net.AIChatbotBackend.service.userServiceForloginSignup;
+import net.AIChatbotBackend.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -16,6 +23,10 @@ public class controllerForUserLoginSignup {
 
     @Autowired
     private userServiceForloginSignup userService;
+    @Autowired
+    CustomUserDetailsService userDetailsService;
+    @Autowired
+    private JwtUtil jwtUtil;
 
 
     @Autowired
@@ -24,36 +35,41 @@ public class controllerForUserLoginSignup {
 
     // Signup API
     @PostMapping("/signup")
-    public ResponseEntity<String> userSignup(@RequestBody User userDetails) {
+    public ResponseEntity<Map<String, String>> userSignup(@Valid @RequestBody User userDetails) {
         Optional<User> userExists = userService.getUserByEmail(userDetails.getEmail());
 
         if (userExists.isPresent()) {
-            return ResponseEntity.badRequest().body("User already exists!");
+            return ResponseEntity.badRequest().body(Map.of("message","user already exists!"));
         }
 
         // Password Hashing
         userDetails.setPassword(passwordEncoder.encode(userDetails.getPassword()));
-
+//userDetails.setRoles("user");
         userService.saveUser(userDetails);
-        return ResponseEntity.ok("Sign up complete!");
+        return ResponseEntity.ok(Map.of("message","Signup complete!"));
     }
 
     //Login API (Without JWT)
+    @Autowired
+    private AuthenticationManager authenticationManager;
     @PostMapping("/login")
     public ResponseEntity<String> userLogin(@RequestBody User userDetails) {
-        Optional<User> userExists = userService.getUserByEmail(userDetails.getEmail());
+        try {
+            // Authenticate user using Spring Security
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(userDetails.getEmail(), userDetails.getPassword())
+            );
 
-        if (userExists.isPresent()) {
-            User user = userExists.get();
+            // Load user from UserDetailsService using email
+            UserDetails loadedUser = userDetailsService.loadUserByUsername(userDetails.getEmail());
 
-            //Password verification
-            if (passwordEncoder.matches(userDetails.getPassword(), user.getPassword())) {
-                return ResponseEntity.ok("Login successful! Welcome " + user.getEmail());
-            } else {
-                return ResponseEntity.status(401).body("Invalid password!");
-            }
-        } else {
-            return ResponseEntity.status(404).body("User not found!");
+            // Generate JWT token using email
+            String token = jwtUtil.generateToken(loadedUser.getUsername());
+
+            return ResponseEntity.ok(token);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(401).body("Invalid credentials!");
         }
-    }
-}
+    }}

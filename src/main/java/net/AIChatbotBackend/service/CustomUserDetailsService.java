@@ -25,7 +25,7 @@ userRepoForLoginSignup userRepository;
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority(user.getRoles()))
+                Collections.emptyList()
         );
     }
 }
